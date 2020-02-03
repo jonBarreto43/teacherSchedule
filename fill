@@ -1,0 +1,186 @@
+"""
+Instructor Schedule Project
+
+Create a schedule based off a csv file showing instructors, their evals
+and which sections they signed up for.
+
+Teachers have ratings from 1 to 5 with 1 being the worst
+
+Teachers have Classes(A-Z) that they are available for
+
+Availability denoted with 1's and 0's with 0 being unavailable
+
+If multiple teachers are available for the same class such as class 'M'
+they are compared using ratings and amount of courses alreaady signed up for
+
+This uses a greedy best first algorithm to place teachers into the right schedule
+"""
+
+import csv ## module used to read the file
+
+
+tD = 65 # Flag Variable
+x = 0
+teacherDirectory = {} ## Dictionary that will contain each teachers number, eval, and sections signed up for
+teachersNumbers = [] ## will hold above numbers
+schedule = {}
+
+
+##READS THE CSV FILE ROW BY ROW AND FILL DICTIONARY
+
+
+with open('schedule.csv', 'r') as csv_file:
+    csv_reader = csv.reader(csv_file)
+    for row in csv_reader:
+        teacherDirectory[x] = row
+        x+=1
+## BOOLEAN VALUES
+
+## Function: hasZero
+## Parameter: A List
+## Return Value: Boolean
+## Description: Utility Funtion to help function removeZero()
+def hasZero(List):
+    zeroCount = 0
+    for t in range(len(List)):
+        if List[t]=='0':
+            zeroCount+=1
+    return zeroCount != 0
+
+
+## REMOVE FIRST ROW - headings of CSV file
+teacherDirectory.pop(0)
+
+## Function: letterClass
+## Parameters: None
+## Return Value: None
+## Description: Creates a List of classes the teacher is available for
+
+def letterClass():
+    classNum = 65
+    for t in range(1, 41):
+        for s in range(2,28):
+            if teacherDirectory[t][s] == '1':
+                teacherDirectory[t][s] = chr(classNum)
+            classNum+=1
+        teacherDirectory[t].append(2)
+        classNum = 65
+
+## Function: removeZero
+## Parameter: None
+## ReturnValue: None
+## Description: Removes the Unvailable classes for each teacher
+        
+def removeZero():
+    for t in range(1, 41):
+        while(hasZero(teacherDirectory[t])):
+            s = 0
+            z = 0
+            while(z==0):
+                s+=1
+                if teacherDirectory[t][s] == '0':
+                    del teacherDirectory[t][s]
+                    z+=1
+
+                
+
+## Function: deLetter
+## Parameter: Character
+## Return Value: None
+## Descripition: When a teacher is assigned to a class it removes the class from all other teachers who are available for it
+
+def deLetter(letter):
+    marked = []
+    for key in teacherDirectory:
+        for s in range(len(teacherDirectory[key])):
+            if teacherDirectory[key][s] == letter:
+                del teacherDirectory[key][s]
+                if len(teacherDirectory[key]) == 3:
+                       marked.append(int(teacherDirectory[key][0]))
+                if teacherDirectory[key][len(teacherDirectory[key])-1] == 0:
+                    marked.append(int(teacherDirectory[key][0]))
+                break
+            
+    if len(marked)>1:
+        if marked[0] == marked[1]:
+            del marked[0]
+        if len(marked) > 2:
+            if marked[1] == marked[2]:
+                del marked[1]
+    for x in range(len(marked)):
+        del teacherDirectory[marked[x]]
+
+## SEARCH FOR BEST
+
+## Function: highestRate
+## Parameter: None
+## Return value: Integer
+## Description: Returns the current highest rating of teacher in the dictionary
+        
+def highestRate():
+    rating = 0
+    for key in teacherDirectory:
+        if int(teacherDirectory[key][1]) > rating:
+            rating = int(teacherDirectory[key][1])
+    return rating
+
+## Function: shortestList
+## Parameter: A List
+## Return Value: Integer
+## Description: Finds the teacher with the least amount of availble classes left
+
+def shortestList(List):
+    length = 100
+    for t in range(len(List)):
+        if len(List[t]) < length:
+            length = len(List[t])
+    return length
+
+## Function: searchBest
+## Parameter: None
+## Return Value: integer, character
+## Description: Looks at the current highest rated teachers, uses shortestList to check for -
+## - the least amount of constraints and returns the teacher and class they will be assigned
+
+def searchBest():
+    bestList = []
+    rating = highestRate()
+    for key in teacherDirectory:
+        sRate = int(teacherDirectory[key][1])
+        if sRate == rating:
+            bestList.append(teacherDirectory[key])
+    short = shortestList(bestList)
+    shortList = []
+    for x in range(len(bestList)):
+        if len(bestList[x]) == short:
+            shortList.append(bestList[x])
+    best = shortList[0][0]
+    bestLetter = shortList[0][2]
+    teacherDirectory[int(shortList[0][0])][len(teacherDirectory[int(shortList[0][0])])-1] = teacherDirectory[int(shortList[0][0])][len(teacherDirectory[int(shortList[0][0])])-1] - 1
+    deLetter(bestLetter)
+    return best, bestLetter
+
+## TEST DICTIONARY
+letterClass()
+removeZero()
+
+
+## Function: fillDirect
+## Parameter: None
+## Return Value: None
+## Description: Creates and displays a complete teacher/class section schedule
+
+def fillDirect():
+    for x in range(26):
+        teacher, section = searchBest()
+        schedule[section] = teacher
+    a = 65
+    for x in range(27):
+        if x == 0:
+            print("| SECTIONS | TEACHER |")
+        else:
+            print("|    "+chr(a)+"     |"+schedule[chr(a)]+"     |")
+            a+=1
+
+fillDirect()
+
